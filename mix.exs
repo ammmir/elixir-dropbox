@@ -1,3 +1,5 @@
+Code.ensure_loaded?(Hex) and Hex.start
+
 defmodule Dropbox.Mixfile do
   use Mix.Project
 
