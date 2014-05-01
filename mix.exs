@@ -29,7 +29,7 @@ defmodule Dropbox.Mixfile do
   end
 
   defp description do
-    "A Dropbox Core API client for Elixi"
+    "A Dropbox Core API client for Elixir"
   end
 
   defp package do
