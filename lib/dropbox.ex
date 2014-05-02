@@ -313,7 +313,7 @@ defmodule Dropbox do
   def copy!(client, from_path, to_path) do
     case copy client, from_path, to_path do
       {:ok, meta} -> true
-      _ -> false
+      {:error, reason} -> raise_error reason
     end
   end
 
