@@ -30,4 +30,31 @@ defmodule Dropbox.Util do
     end
     map
   end
+
+  # TODO: run all dates through this function first
+  def parse_date(date) do
+    # Fri, 02 May 2014 01:33:30 +0000
+    date = Regex.named_captures ~r/^.+, (?<day>\d{2}) (?<month>.{3}) (?<year>\d{4}) (?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2}) \+0000$/, date
+
+    {year, _} = Integer.parse date["year"]
+    month = case date["month"] do
+      "Jan" -> 1
+      "Feb" -> 2
+      "Mar" -> 3
+      "Apr" -> 4
+      "May" -> 5
+      "Jun" -> 6
+      "Jul" -> 7
+      "Aug" -> 8
+      "Sep" -> 9
+      "Oct" -> 10
+      "Nov" -> 11
+      "Dec" -> 12
+    end
+    {day, _} = Integer.parse date["day"]
+    {hour, _} = Integer.parse date["hour"]
+    {minute, _} = Integer.parse date["minute"]
+    {second, _} = Integer.parse date["second"]
+    {{year, month, day}, {hour, minute, second}}
+  end
 end

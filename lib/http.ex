@@ -5,8 +5,8 @@ defmodule Dropbox.HTTP do
     :hackney.start
   end
 
-  def get(client, url, res_struct \\ nil) do
-    do_request client, :get, url, nil, res_struct
+  def get(client, url, res_struct \\ nil, stream_pid \\ nil) do
+    do_request client, :get, url, nil, res_struct, stream_pid
   end
 
   def post(client, url, body \\ nil, res_struct \\ nil) do
@@ -17,7 +17,7 @@ defmodule Dropbox.HTTP do
     do_request client, :put, url, body, res_struct
   end
 
-  defp do_request(client, method, url, body, res_struct) do
+  defp do_request(client, method, url, body, res_struct, stream_pid \\ nil) do
     if client.access_token do
       headers = [{"Authorization", "Bearer #{client.access_token}"}]
     else
@@ -32,7 +32,13 @@ defmodule Dropbox.HTTP do
       _ -> body = []
     end
 
-    case :hackney.request method, url, headers, body, [{:pool, :default}] do
+    options = [{:pool, :default}]
+
+    if stream_pid do
+      options = [:async, {:stream_to, stream_pid} | options]
+    end
+
+    case :hackney.request method, url, headers, body, options do
       {:ok, code, headers, body_ref} ->
         {:ok, body} = :hackney.body body_ref
 

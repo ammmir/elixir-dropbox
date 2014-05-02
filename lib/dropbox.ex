@@ -115,7 +115,73 @@ defmodule Dropbox do
     end
   end
 
-  def download_file(client, path, local_path, rev \\ nil) do
+  defp wait_response(parent, file) do
+    # TODO: move this mess into HTTP
+    receive do
+      {:hackney_response, ref, {:status, status, reason}} ->
+        if status in 200..299 do
+          wait_response parent, file
+        else
+          wait_response parent, %{file | file: "", error: status}
+        end
+      {:hackney_response, ref, {:headers, headers}} ->
+        if file.error do
+          wait_response parent, file
+        else
+          {_, meta} = Enum.find headers, fn({k,v}) -> k == "x-dropbox-metadata" end
+          meta = Dropbox.Util.atomize_map Dropbox.Metadata, ExJSON.parse(meta, :to_map)
+          {:ok, newfile} = File.open file.file, [:write]
+          wait_response parent, %{file | file: newfile, meta: meta}
+        end
+      {:hackney_response, ref, :done} ->
+        if file.error do
+          reason = ExJSON.parse(file.file, :to_map)["error"]
+          send parent, {ref, :error, {{:http_status, file.error}, reason}}
+        else
+          File.close file.file
+          send parent, {ref, :done, file.meta}
+        end
+        :ok
+      {:hackney_response, ref, bin} ->
+        if file.error do
+          wait_response parent, %{file | file: file.file <> bin}
+        else
+          :ok = IO.write file.file, bin
+          wait_response parent, file
+        end
+      _ ->
+        :ok
+    end
+  end
+
+  def download_file(client, path, local_path, rev \\ nil, keep_mtime \\ true) do
+    parent = self
+    pid = spawn fn -> wait_response parent, %{file: local_path, meta: nil, error: nil} end
+
+    case Dropbox.HTTP.get client, "https://api-content.dropbox.com/1/files/#{client.root}#{normalize_path path}#{if rev do "?rev=" <> rev end}", Dropbox.Metadata, pid do
+      {:ok, ref} ->
+        receive do
+          {ref, :done, meta} ->
+            if keep_mtime do
+              case File.stat local_path, [{:time, :universal}] do
+                {:ok, stat} ->
+                  stat = stat.mtime Dropbox.Util.parse_date meta.client_mtime
+                  File.write_stat local_path, stat, [{:time, :universal}]
+                _ ->
+              end
+            end
+            {:ok, meta}
+          {ref, :error, reason} -> {:error, reason}
+        end
+      e -> e
+    end
+  end
+
+  def download_file!(client, path, local_path, rev \\ nil, keep_mtime \\ true) do
+    case download_file client, path, local_path, rev, keep_mtime do
+      {:ok, meta} -> meta
+      {:error, reason} -> raise_error reason
+    end
   end
 
   def upload_file(client, local_path, remote_path, overwrite \\ true, parent_rev \\ nil) do
@@ -158,19 +224,63 @@ defmodule Dropbox do
   def wait_for_change(client, cursor, timeout=30) do
   end
 
-  def revisions(client, path, limit=10) do
+  def revisions(client, path, limit \\ 10) do
+    Dropbox.HTTP.get client, "https://api.dropbox.com/1/revisions/#{client.root}#{normalize_path path}?rev_limit=#{limit}", Dropbox.Metadata
+  end
+
+  def revisions!(client, path, limit \\ 10) do
+    case revisions client, path, limit do
+      {:ok, revs} -> revs
+      {:error, reason} -> raise_error reason
+    end
   end
 
   def restore(client, path, rev) do
   end
 
-  def search(client, path, query, limit=1000, deleted=false) do
+  def search(client, path, query, limit \\ 1000, deleted \\ false) do
+    query = %{
+      query: query,
+      file_limit: limit,
+      include_deleted: deleted
+    }
+
+    Dropbox.HTTP.get client, "https://api.dropbox.com/1/search/#{client.root}#{normalize_path path}?#{URI.encode_query query}", Dropbox.Metadata
   end
 
-  def share_link(client, path, short=false) do
+  def search!(client, path, query, limit \\ 1000, deleted \\ false) do
+    case search client, path, query, limit, deleted do
+      {:ok, results} -> results
+      {:error, reason} -> raise_error reason
+    end
+  end
+
+  def share_url(client, path, short \\ true) do
+    case Dropbox.HTTP.post client, "https://api.dropbox.com/1/shares/#{client.root}#{normalize_path path}?short_url=#{short}", nil, %{url: nil, expires: nil} do
+      {:ok, %{url: url, expires: expires}} -> {:ok, url, expires}
+      e -> e
+    end
+  end
+
+  def share_url!(client, path, short \\ true) do
+    case share_url client, path, short do
+      {:ok, %{url: url, expires: expires}} -> url
+      {:error, reason} -> raise_error reason
+    end
   end
 
   def media_url(client, path) do
+    case Dropbox.HTTP.post client, "https://api.dropbox.com/1/media/#{client.root}#{normalize_path path}", nil, %{url: nil, expires: nil} do
+      {:ok, %{url: url, expires: expires}} -> {:ok, url, expires}
+      e -> e
+    end
+  end
+
+  def media_url!(client, path) do
+    case media_url client, path do
+      {:ok, %{url: url, expires: expires}} -> url
+      {:error, reason} -> raise_error reason
+    end
   end
 
   def copy_ref(client, path) do
@@ -270,8 +380,12 @@ defmodule Dropbox do
   end
 
   defp raise_error(reason) do
-    {:error, {{:http_status, code}, reason}} = reason
-    raise Dropbox.Error[message: reason, status: code]
+    case reason do
+      {{:http_status, code}, reason} ->
+        raise Dropbox.Error[message: reason, status: code]
+      reason ->
+        raise Dropbox.Error[message: reason]
+    end
   end
 
   defp normalize_path(path) do

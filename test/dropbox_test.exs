@@ -68,6 +68,10 @@ defmodule DropboxTest do
     meta = Dropbox.upload_file! ctx[:client], "README.md", filename
     assert meta.path == "/#{filename}"
     assert File.read!("README.md") == Dropbox.download!(ctx[:client], "/#{filename}")
+
+    tmp_file = Path.join System.tmp_dir, filename
+    assert Dropbox.download_file!(ctx[:client], "/#{filename}", tmp_file) == meta
+    File.rm! tmp_file
     assert Dropbox.delete!(ctx[:client], filename) == true
   end
 
