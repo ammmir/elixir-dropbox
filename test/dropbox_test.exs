@@ -5,29 +5,35 @@ defmodule DropboxTest do
     Dropbox.HTTP.start
 
     try do
-      creds_path = Path.expand System.get_env "DB_CREDS"
-      file = File.open! creds_path
-      client_id = String.strip IO.read file, :line
-      client_secret = String.strip IO.read file, :line
-      access_token = String.strip IO.read file, :line
-      File.close file
+      creds_file = Path.expand System.get_env "DB_CREDS"
 
-      {:ok, [client: %Dropbox.Client{client_id: client_id,
-                                     client_secret: client_secret,
-                                     access_token: access_token,
-                                     root: :dropbox}]}
+      if not File.exists? creds_file do
+        IO.write "Dropbox app key: "
+        client_id = String.strip IO.read :line
+        IO.write "Dropbox app secret: "
+        client_secret = String.strip IO.read :line
+
+        client = %Dropbox.Client{client_id: client_id,
+                                 client_secret: client_secret}
+
+        IO.puts "To obtain a code, visit: #{Dropbox.authorize_url(client)}"
+        IO.write "Enter code: "
+        code = String.strip IO.read :line
+
+        {:ok, access_token, uid} = Dropbox.access_token client, code
+        client = %{client | access_token: access_token}
+        {:ok, _} = Dropbox.account_info client
+
+        File.write! creds_file, "#{client_id}\n#{client_secret}\n#{access_token}"
+      end
+
+      {:ok, [client: get_client creds_file]}
     rescue
       e ->
         IO.puts "
   Error: #{inspect e}
 
-  You must create a file containing 3 lines:
-
-        <your client id>
-        <your client secret>
-        <your access token>
-
-  Then run mix test again with:
+  You need to set the DB_CREDS environment variable for credential storage:
 
         DB_CREDS=~/.dropbox-test-credentials mix test"
         :bad
@@ -63,6 +69,19 @@ defmodule DropboxTest do
     assert meta.path == "/#{filename}"
     assert File.read!("README.md") == Dropbox.download!(ctx[:client], "/#{filename}")
     assert Dropbox.delete!(ctx[:client], filename) == true
+  end
+
+  defp get_client(path) do
+    file = File.open! path
+    client_id = String.strip IO.read file, :line
+    client_secret = String.strip IO.read file, :line
+    access_token = String.strip IO.read file, :line
+    File.close file
+
+    %Dropbox.Client{client_id: client_id,
+                    client_secret: client_secret,
+                    access_token: access_token,
+                    root: :dropbox}
   end
 
   defp random_name do

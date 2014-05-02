@@ -18,7 +18,11 @@ defmodule Dropbox.HTTP do
   end
 
   defp do_request(client, method, url, body, res_struct) do
-    headers = [{"Authorization", "Bearer #{client.access_token}"}]
+    if client.access_token do
+      headers = [{"Authorization", "Bearer #{client.access_token}"}]
+    else
+      headers = [{"Authorization", "Basic #{Base.encode64 client.client_id <> ":" <> client.client_secret}"}]
+    end
 
     case body do
       {:json, json} ->

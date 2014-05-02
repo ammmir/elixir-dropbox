@@ -6,11 +6,12 @@ defmodule Dropbox.Util do
   def atomize_map(module, binmap) do
     if is_map module do
       map = module
+      keys = Map.keys map
     else
       map = struct module, %{}
+      [_ | keys] = Map.keys map
     end
 
-    [_ | keys] = Map.keys map
     {_, map} = Enum.map_reduce keys, map, fn(k, acc) ->
       if Map.has_key? binmap, atom_to_binary(k) do
         v = binmap[atom_to_binary k]

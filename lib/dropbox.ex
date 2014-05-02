@@ -60,6 +60,28 @@ defmodule Dropbox do
     {:ok, self}
   end
 
+  ### OAuth 2.0: optional, can be handled by third-party lib or manually ###
+
+  def authorize_url(client, redirect_uri \\ nil, state \\ "") do
+    query = %{
+      client_id: client.client_id,
+      response_type: "code",
+      state: state
+    }
+    if redirect_uri do
+      query = Map.put query, :redirect_uri, redirect_uri
+    end
+
+    "https://www.dropbox.com/1/oauth2/authorize?#{URI.encode_query query}"
+  end
+
+  def access_token(client, code) do
+    case Dropbox.HTTP.post client, "https://api.dropbox.com/1/oauth2/token?grant_type=authorization_code&code=#{URI.encode code}", nil, %{access_token: nil, uid: nil} do
+      {:ok, token} -> {:ok, token.access_token, token.uid}
+      e -> e
+    end
+  end
+
   ### Dropbox accounts ###
 
   def account_info(client) do
