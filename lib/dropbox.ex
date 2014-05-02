@@ -298,6 +298,14 @@ defmodule Dropbox do
   end
 
   def thumbnail(client, path, size \\ :s, format \\ :jpeg) do
+    Dropbox.HTTP.get client, "https://api-content.dropbox.com/1/thumbnails/#{client.root}#{normalize_path path}?format=#{format}&size=#{size}"
+  end
+
+  def thumbnail!(client, path, size \\ :s, format \\ :jpeg) do
+    case thumbnail client, path, size, format do
+      {:ok, meta, thumb} -> thumb
+      {:error, reason} -> raise_error reason
+    end
   end
 
   def upload_chunk(client, upload_id, offset, data) do
