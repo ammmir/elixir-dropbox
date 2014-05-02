@@ -284,9 +284,17 @@ defmodule Dropbox do
   end
 
   def copy_ref(client, path) do
+    case Dropbox.HTTP.get client, "https://api.dropbox.com/1/copy_ref/#{client.root}#{normalize_path path}", %{copy_ref: nil, expires: nil} do
+      {:ok, %{copy_ref: copy_ref, expires: expires}} -> {:ok, copy_ref, expires}
+      e -> e
+    end
   end
 
   def copy_ref!(client, path) do
+    case copy_ref client, path do
+      {:ok, copy_ref, expires} -> copy_ref
+      {:error, reason} -> raise_error reason
+    end
   end
 
   def thumbnail(client, path, size \\ :s, format \\ :jpeg) do
