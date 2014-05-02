@@ -3,6 +3,10 @@ defmodule Dropbox.Util do
     binmap
   end
 
+  def atomize_map(module, binmap) when is_list(binmap) do
+    Enum.map binmap, fn(x) -> atomize_map(module, x) end
+  end
+
   def atomize_map(module, binmap) do
     if is_map module do
       map = module
