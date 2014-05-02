@@ -34,6 +34,7 @@ defmodule Dropbox.Mixfile do
 
   defp package do
     [
+      contributors: ["Amir Malik"],
       licenses: ["MIT"],
       links: [
         {"GitHub", "https://github.com/ammmir/elixir-dropbox"}
