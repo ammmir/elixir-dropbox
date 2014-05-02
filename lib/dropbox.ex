@@ -82,6 +82,13 @@ defmodule Dropbox do
     end
   end
 
+  def disable_access_token(client) do
+    case Dropbox.HTTP.post client, "https://api.dropbox.com/1/disable_access_token" do
+      {:ok, _} -> :ok
+      e -> e
+    end
+  end
+
   ### Dropbox accounts ###
 
   def account_info(client) do
