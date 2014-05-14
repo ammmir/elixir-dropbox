@@ -23,18 +23,18 @@ defmodule Dropbox do
               quota_info: %{normal: 0, shared: 0, quota: 0}
   end
 
+  defmodule Metadata.Photo do
+    defstruct lat_long: [],
+              time_taken: nil
+  end
+
+  defmodule Metadata.Video do
+    defstruct lat_long: [],
+              time_taken: nil,
+              duration: 0
+  end
+
   defmodule Metadata do
-    defmodule Photo do
-      defstruct lat_long: [],
-                time_taken: nil
-    end
-
-    defmodule Video do
-      defstruct lat_long: [],
-                time_taken: nil,
-                duration: 0
-    end
-
     defstruct size: nil,
               bytes: 0,
               path: nil,
@@ -43,8 +43,8 @@ defmodule Dropbox do
               rev: nil,
               hash: nil,
               thumb_exists: false,
-              photo_info: %Photo{},
-              video_info: %Video{},
+              photo_info: %Dropbox.Metadata.Photo{},
+              video_info: %Dropbox.Metadata.Video{},
               icon: nil,
               modified: nil,
               client_mtime: nil,
@@ -165,7 +165,7 @@ defmodule Dropbox do
             if keep_mtime do
               case File.stat local_path, [{:time, :universal}] do
                 {:ok, stat} ->
-                  stat = stat.mtime Dropbox.Util.parse_date meta.client_mtime
+                  stat = %{stat | mtime: Dropbox.Util.parse_date meta.client_mtime}
                   File.write_stat local_path, stat, [{:time, :universal}]
                 _ ->
               end
