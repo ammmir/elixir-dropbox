@@ -3,7 +3,9 @@ defmodule Dropbox do
   Provides an interface to the Dropbox Core API.
   """
 
-  defexception Error, message: nil, status: 0
+  defmodule Error do
+    defexception [:message, :status]
+  end
 
   defmodule Client do
     defstruct client_id: nil,
@@ -398,9 +400,9 @@ defmodule Dropbox do
   defp raise_error(reason) do
     case reason do
       {{:http_status, code}, reason} ->
-        raise Dropbox.Error[message: reason, status: code]
+        raise %Dropbox.Error{message: reason, status: code}
       reason ->
-        raise Dropbox.Error[message: reason]
+        raise %Dropbox.Error{message: reason}
     end
   end
 
