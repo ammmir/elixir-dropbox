@@ -27,7 +27,7 @@ defmodule Dropbox.HTTP do
     case body do
       {:json, json} ->
         headers = [{"Content-Type", "application/json"} | headers]
-        body = ExJSON.generate json
+        body = Jazz.encode! json
       {:file, path} -> true
       _ -> body = []
     end
@@ -47,9 +47,9 @@ defmodule Dropbox.HTTP do
         case Enum.find headers, fn({k,v}) -> k == "x-dropbox-metadata" end do
           {_, meta} ->
             download = true
-            json = ExJSON.parse(meta, :to_map)
+            json = atomize_map Dropbox.Metadata, Jazz.decode!(meta)
           nil ->
-            json = ExJSON.parse(body, :to_map)
+            json = Jazz.decode!(body)
         end
 
         cond do

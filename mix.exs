@@ -6,8 +6,8 @@ defmodule Dropbox.Mixfile do
   def project do
     [
       app: :dropbox,
-      version: "0.0.3",
-      elixir: "~> 0.13.2",
+      version: "0.0.4",
+      elixir: "~> 0.14.1",
       description: description,
       package: package,
       deps: deps
@@ -17,13 +17,13 @@ defmodule Dropbox.Mixfile do
   def application do
     [
       mod: { Dropbox, [] },
-      applications: [:hackney, :exjson]
+      applications: [:hackney]
     ]
   end
 
   defp deps do
     [
-      {:exjson, "~> 0.3.0"},
+      {:jazz, "~> 0.1.2"},
       {:hackney, github: "benoitc/hackney"}
     ]
   end

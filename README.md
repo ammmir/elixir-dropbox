@@ -1,6 +1,6 @@
 # elixir-dropbox
 
-A Dropbox Core API client for Elixir, based on [hackney](https://github.com/benoitc/hackney) and [ExJSON](https://github.com/guedes/exjson).
+A Dropbox Core API client for Elixir, based on [hackney](https://github.com/benoitc/hackney) and [Jazz](https://github.com/meh/jazz).
 
 The Dropbox module provides the thinnest layer of abstraction as possible on top of the Dropbox Core API. Responses are returned as maps and use the same field names as the API itself to keep things simple.
 

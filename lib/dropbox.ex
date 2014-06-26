@@ -15,14 +15,24 @@ defmodule Dropbox do
               root: :dropbox
   end
 
+  defmodule Account.Team do
+    defstruct name: nil
+  end
+
+  defmodule Account.Quota do
+    defstruct normal: 0,
+              shared: 0,
+              quota: 0
+  end
+
   defmodule Account do
     defstruct email: nil,
               referral_link: nil,
               display_name: nil,
               uid: nil,
               country: nil,
-              team: %{name: nil},
-              quota_info: %{normal: 0, shared: 0, quota: 0}
+              team: %Dropbox.Account.Team{},
+              quota_info: %Dropbox.Account.Quota{}
   end
 
   defmodule Metadata.Photo do
@@ -131,13 +141,13 @@ defmodule Dropbox do
           wait_response parent, file
         else
           {_, meta} = Enum.find headers, fn({k,v}) -> k == "x-dropbox-metadata" end
-          meta = Dropbox.Util.atomize_map Dropbox.Metadata, ExJSON.parse(meta, :to_map)
+          meta = Dropbox.Util.atomize_map Dropbox.Metadata, Jazz.decode!(meta)
           {:ok, newfile} = File.open file.file, [:write]
           wait_response parent, %{file | file: newfile, meta: meta}
         end
       {:hackney_response, ref, :done} ->
         if file.error do
-          reason = ExJSON.parse(file.file, :to_map)["error"]
+          reason = Jazz.decode!(file.file, keys: :atoms).error
           send parent, {ref, :error, {{:http_status, file.error}, reason}}
         else
           File.close file.file
