@@ -6,8 +6,8 @@ defmodule Dropbox.Mixfile do
   def project do
     [
       app: :dropbox,
-      version: "0.0.4",
-      elixir: "~> 0.14.1",
+      version: "0.0.5",
+      elixir: "~> 0.14.3",
       description: description,
       package: package,
       deps: deps

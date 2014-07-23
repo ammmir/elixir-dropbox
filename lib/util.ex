@@ -17,8 +17,8 @@ defmodule Dropbox.Util do
     end
 
     {_, map} = Enum.map_reduce keys, map, fn(k, acc) ->
-      if Map.has_key? binmap, atom_to_binary(k) do
-        v = binmap[atom_to_binary k]
+      if Map.has_key? binmap, Atom.to_string(k) do
+        v = binmap[Atom.to_string k]
         if is_map v do
           {k, Map.put(acc, k, atomize_map(Map.get(map, k), v))}
         else
