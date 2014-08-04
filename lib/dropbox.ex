@@ -122,7 +122,7 @@ defmodule Dropbox do
 
   def download!(client, path, rev \\ nil) do
     case download client, path, rev do
-      {:ok, meta, contents} -> contents
+      {:ok, _meta, contents} -> contents
       {:error, reason} -> raise_error reason
     end
   end
@@ -130,17 +130,17 @@ defmodule Dropbox do
   defp wait_response(parent, file) do
     # TODO: move this mess into HTTP
     receive do
-      {:hackney_response, ref, {:status, status, reason}} ->
+      {:hackney_response, _ref, {:status, status, _reason}} ->
         if status in 200..299 do
           wait_response parent, file
         else
           wait_response parent, %{file | file: "", error: status}
         end
-      {:hackney_response, ref, {:headers, headers}} ->
+      {:hackney_response, _ref, {:headers, headers}} ->
         if file.error do
           wait_response parent, file
         else
-          {_, meta} = Enum.find headers, fn({k,v}) -> k == "x-dropbox-metadata" end
+          {_, meta} = Enum.find headers, fn({k,_}) -> k == "x-dropbox-metadata" end
           meta = Dropbox.Util.atomize_map Dropbox.Metadata, Jazz.decode!(meta)
           {:ok, newfile} = File.open file.file, [:write]
           wait_response parent, %{file | file: newfile, meta: meta}
@@ -154,7 +154,7 @@ defmodule Dropbox do
           send parent, {ref, :done, file.meta}
         end
         :ok
-      {:hackney_response, ref, bin} ->
+      {:hackney_response, _ref, bin} ->
         if file.error do
           wait_response parent, %{file | file: file.file <> bin}
         else
@@ -171,9 +171,9 @@ defmodule Dropbox do
     pid = spawn fn -> wait_response parent, %{file: local_path, meta: nil, error: nil} end
 
     case Dropbox.HTTP.get client, "https://api-content.dropbox.com/1/files/#{client.root}#{normalize_path path}#{if rev do "?rev=" <> rev end}", Dropbox.Metadata, pid do
-      {:ok, ref} ->
+      {:ok, _ref} ->
         receive do
-          {ref, :done, meta} ->
+          {_ref, :done, meta} ->
             if keep_mtime do
               case File.stat local_path, [{:time, :universal}] do
                 {:ok, stat} ->
@@ -183,7 +183,7 @@ defmodule Dropbox do
               end
             end
             {:ok, meta}
-          {ref, :error, reason} -> {:error, reason}
+          {_ref, :error, reason} -> {:error, reason}
         end
       e -> e
     end
@@ -230,10 +230,10 @@ defmodule Dropbox do
     end
   end
 
-  def delta(client, cursor=nil, path_prefix=nil, media=false) do
+  def delta(client, cursor \\ nil, path_prefix \\ nil, media \\ false) do
   end
 
-  def wait_for_change(client, cursor, timeout=30) do
+  def wait_for_change(client, cursor, timeout \\ 30) do
   end
 
   def revisions(client, path, limit \\ 10) do
@@ -276,7 +276,7 @@ defmodule Dropbox do
 
   def share_url!(client, path, short \\ true) do
     case share_url client, path, short do
-      {:ok, %{url: url, expires: expires}} -> url
+      {:ok, %{url: url, expires: _expires}} -> url
       {:error, reason} -> raise_error reason
     end
   end
@@ -290,7 +290,7 @@ defmodule Dropbox do
 
   def media_url!(client, path) do
     case media_url client, path do
-      {:ok, %{url: url, expires: expires}} -> url
+      {:ok, %{url: url, expires: _expires}} -> url
       {:error, reason} -> raise_error reason
     end
   end
@@ -304,7 +304,7 @@ defmodule Dropbox do
 
   def copy_ref!(client, path) do
     case copy_ref client, path do
-      {:ok, copy_ref, expires} -> copy_ref
+      {:ok, copy_ref, _expires} -> copy_ref
       {:error, reason} -> raise_error reason
     end
   end
@@ -315,7 +315,7 @@ defmodule Dropbox do
 
   def thumbnail!(client, path, size \\ :s, format \\ :jpeg) do
     case thumbnail client, path, size, format do
-      {:ok, meta, thumb} -> thumb
+      {:ok, _meta, thumb} -> thumb
       {:error, reason} -> raise_error reason
     end
   end
@@ -340,7 +340,7 @@ defmodule Dropbox do
 
   def copy!(client, from_path, to_path) do
     case copy client, from_path, to_path do
-      {:ok, meta} -> true
+      {:ok, _meta} -> true
       {:error, reason} -> raise_error reason
     end
   end
@@ -369,7 +369,7 @@ defmodule Dropbox do
     }
 
     case Dropbox.HTTP.post client, "https://api.dropbox.com/1/fileops/create_folder?#{URI.encode_query query}", Dropbox.Metadata do
-      {:ok, meta} -> true
+      {:ok, _meta} -> true
       _ -> false
     end
   end

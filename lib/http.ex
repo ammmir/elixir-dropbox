@@ -28,7 +28,7 @@ defmodule Dropbox.HTTP do
       {:json, json} ->
         headers = [{"Content-Type", "application/json"} | headers]
         body = Jazz.encode! json
-      {:file, path} -> true
+      {:file, _path} -> true
       _ -> body = []
     end
 
@@ -44,7 +44,7 @@ defmodule Dropbox.HTTP do
 
         download = false
 
-        case Enum.find headers, fn({k,v}) -> k == "x-dropbox-metadata" end do
+        case Enum.find headers, fn({k,_}) -> k == "x-dropbox-metadata" end do
           {_, meta} ->
             download = true
             json = atomize_map Dropbox.Metadata, Jazz.decode!(meta)
