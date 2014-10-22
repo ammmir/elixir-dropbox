@@ -36,9 +36,7 @@ defmodule Dropbox.Mixfile do
     [
       contributors: ["Amir Malik"],
       licenses: ["MIT"],
-      links: [
-        {"GitHub", "https://github.com/ammmir/elixir-dropbox"}
-      ]
+      links: %{"GitHub" => "https://github.com/ammmir/elixir-dropbox"}
     ]
   end
 end
